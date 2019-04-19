@@ -1,0 +1,14 @@
+c:\users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\GameServe.exe.config
+c:\users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\GameServe.exe
+c:\users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\GameServe.pdb
+c:\users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\obj\Debug\GameServe.csprojResolveAssemblyReference.cache
+c:\users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\obj\Debug\GameServe.exe
+c:\users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\obj\Debug\GameServe.pdb
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\EntityFramework.dll
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\System.Data.SQLite.dll
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\EntityFramework.xml
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\hasee\documents\visual studio 2015\Projects\GameServe\GameServe\bin\Debug\System.Data.SQLite.xml
