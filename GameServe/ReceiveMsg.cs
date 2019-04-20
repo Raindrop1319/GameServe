@@ -6,9 +6,5 @@ using System.Threading.Tasks;
 
 namespace GameServe
 {
-    struct ReceiveMsg
-    {
-        public Client client;
-        public string msg;
-    }
+
 }

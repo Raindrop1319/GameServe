@@ -17,6 +17,7 @@ namespace GameServe
         public bool isLogin = false;
         public bool isStayRoom = false;
         public bool isGame = false;
+        public string IPandPort;
 
         /// <summary>
         /// 向客户端发送消息

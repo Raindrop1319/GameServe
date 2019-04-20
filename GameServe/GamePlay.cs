@@ -146,17 +146,37 @@ namespace GameServe
             }
 
             string data = System.Text.Encoding.UTF8.GetString(player.client.data).TrimEnd('\0');
+            string[] devideData;
+            try
+            {
+                devideData = ServerFunction.DevideMsg(data);
+                for (int i = 0; i < devideData.Length; i++)
+                {
+                    if (devideData[i].CompareTo("HB") != 0)
+                    {
+                        Console.WriteLine("房间内：  " + devideData[i]);
+                    }
+                    Parse(devideData[i], player);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error Package");
+            }
+
             //清空数组数据
             Array.Clear(player.client.data, 0, player.client.data.Length);
-            if (data.CompareTo("HB") != 0)
-            {
-                Console.WriteLine("房间内： " + data);
-            }
-            Parse(data,player);
 
             if (player.client.isLink)
             {
-                player.client.socket.BeginReceive(player.client.data, 0, player.client.data.Length, SocketFlags.None, new AsyncCallback(Callback_Receive), player);
+                try
+                {
+                    player.client.socket.BeginReceive(player.client.data, 0, player.client.data.Length, SocketFlags.None, new AsyncCallback(Callback_Receive), player);
+                }
+                catch
+                {
+
+                }
             }
         }
 
@@ -225,5 +245,6 @@ namespace GameServe
             player.Dir = Vector3.Parse(t[2], ',');
             player.Score = int.Parse(t[3]);
         }
+
     }
 }

@@ -17,15 +17,13 @@ namespace GameServe
 
         const float maxHeartBeatWaitTime = 2;
 
-        static Queue<ReceiveMsg> MsgQueue = new Queue<ReceiveMsg>();
-
         static void Main(string[] args)
         {
             string[] info = get_IP_Port();
             //string[] info = new string[2];
             //info[0] = "127.0.0.1";
             //info[1] = "10000";
-            
+
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPAddress IP = IPAddress.Parse(info[0]);
             IPEndPoint IEP = new IPEndPoint(IP, int.Parse(info[1]));
@@ -38,8 +36,6 @@ namespace GameServe
 
             Thread heartBeat = new Thread(checkClient);
             heartBeat.Start();
-            Thread thread_getMsg = new Thread(getMsgQueue);
-            thread_getMsg.Start();
             while(true)
             {
                 Console.Read();
@@ -71,6 +67,7 @@ namespace GameServe
             new_Client.isLink = true;
             new_Client.socket = t_socket.EndAccept(ar);
             new_Client.lastTick = ServerFunction.getTimeStamp();
+            new_Client.IPandPort = new_Client.socket.RemoteEndPoint.ToString();
 
             Console.WriteLine(new_Client.socket.RemoteEndPoint.ToString() + " 连接");
             new_Client.socket.BeginReceive(new_Client.data, 0, new_Client.data.Length, SocketFlags.None, new AsyncCallback(Callback_Receive), new_Client);
@@ -104,18 +101,26 @@ namespace GameServe
             }
 
             string data = System.Text.Encoding.UTF8.GetString(t_client.data).TrimEnd('\0');
-            ReceiveMsg msg;
-            msg.client = t_client;
-            msg.msg = data;
-            MsgQueue.Enqueue(msg);
+            string[] devideData;
+            try
+            {
+                devideData = ServerFunction.DevideMsg(data);
+                for(int i = 0;i<devideData.Length;i++)
+                {
+                    if (devideData[i].CompareTo("HB") != 0)
+                    {
+                        Console.WriteLine(devideData[i]);
+                    }
+                    ParseClientData(t_client, devideData[i]);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error Package");
+            }
 
             //清空数组数据
             Array.Clear(t_client.data, 0, t_client.data.Length);
-
-            if (data.CompareTo("HB") != 0)
-            {
-                Console.WriteLine(data);
-            }
 
             if (t_client.isLink && !t_client.isGame)
             {
@@ -209,36 +214,11 @@ namespace GameServe
         /// <param name="CT"></param>
         static void CloseClient(Client CT)
         {
-            Console.WriteLine(CT.socket.RemoteEndPoint.ToString() + "  已断线");
+            Console.WriteLine(CT.IPandPort + "  已断线");
             CT.Close();
             ClientList.Remove(CT);
         }
 
-        /// <summary>
-        /// 取消息区
-        /// </summary>
-        static void getMsgQueue()
-        {
-            while(true)
-            {
-                try
-                {
-                    if(MsgQueue.Count > 0)
-                    {
-                        ReceiveMsg t = MsgQueue.Dequeue();
-                        if (t.client.isLink)
-                        {
-                            //解析
-                            ParseClientData(t.client,t.msg);
-                        }
-                    }
-                }
-                catch
-                {
-                    Console.WriteLine("Eor");
-                }
-                Thread.Sleep(50);
-            }
-        }
+
     }
 }
