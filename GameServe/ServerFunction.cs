@@ -20,6 +20,16 @@ namespace GameServe
         }
 
         /// <summary>
+        /// 获取时间戳(毫秒)
+        /// </summary>
+        /// <returns></returns>
+        public static long getTimeStamp_milSeconds()
+        {
+            TimeSpan TS = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+            return Convert.ToInt64(TS.TotalMilliseconds);
+        }
+
+        /// <summary>
         /// MD5加密
         /// </summary>
         /// <param name="t"></param>

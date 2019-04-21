@@ -14,12 +14,21 @@ namespace GameServe
     /// </summary>
     class GamePlay
     {
+        const int maxWaitTime_event = 1000; //(毫秒)
+
         private PlayerData[] Players;
         private const int maxPlayer = 2;
 
         int rand;
         bool[] isReady = { false, false };
         bool isFinish = false;
+        
+        //待发事件队列
+        Queue<Event_waitSend> sendEventQueue = new Queue<Event_waitSend>();
+        //待回答事件表
+        Dictionary<int, Event_waitAnswer> answerEventList = new Dictionary<int, Event_waitAnswer>();
+        //当前事件索引表
+        ushort currentIndex = 0;
 
         public GamePlay(Room rm)
         {
@@ -82,7 +91,41 @@ namespace GameServe
 
             while(!isFinish)
             {
-                string data = "PD ";
+                //处理待发事件队列
+                string t_msg = "GE";
+                if(sendEventQueue.Count > 0)
+                {
+                    while(sendEventQueue.Count <= 0)
+                    {
+                        Event_waitSend t = sendEventQueue.Dequeue();
+                        t_msg += t.ToString();
+                        AddEvent(t);
+                    }
+                }
+                BroadcastMsg(t_msg);
+
+                //处理待回答事件列表
+                long currentTimeStamp = ServerFunction.getTimeStamp_milSeconds();
+                for (int i = answerEventList.Count - 1; i >= 0; i--)
+                {
+                    Event_waitAnswer t = answerEventList[i];
+                    //超时
+                    if(currentTimeStamp > t.endTime)
+                    {
+                        //如果超过一半玩家应答则予以回应
+                        if(t.getAnswerNum() > maxPlayer * 0.5f)
+                        {
+                            int t_answer = t.Answer();
+                            string t_data = string.Format("EA {0}:{1}", t.data.selfIndex, t_answer);
+                            t.data.client.Send(t_data);
+                        }
+                        answerEventList.Remove(t.data.index);
+                    }
+                }
+            
+
+            //获取玩家信息包
+            string data = "PD ";
                 for(int i = 0;i<Players.Length;i++)
                 {
                     data += (getPlayerData(i));
@@ -92,6 +135,7 @@ namespace GameServe
                     }
                 }
 
+                //发送玩家信息包
                 int j = 0;
                 for (int i = 0; i < Players.Length; i++)
                 {
@@ -105,6 +149,7 @@ namespace GameServe
                     }
                 }
 
+                //检测是否所有玩家都已掉线
                 if(j == maxPlayer)
                 {
                     break;
@@ -198,6 +243,12 @@ namespace GameServe
                 case "PD":
                     ParsePlayerData(msg, player);
                     break;
+                case "GE":
+                    ParseGameEvent(msg, player);
+                    break;
+                case "EA":
+                    ParseEventAnswer(msg, player);
+                    break;
             }
         }
 
@@ -244,6 +295,80 @@ namespace GameServe
             player.Pos = Vector3.Parse(t[1], ',');
             player.Dir = Vector3.Parse(t[2], ',');
             player.Score = int.Parse(t[3]);
+        }
+
+        /// <summary>
+        /// 解析游戏事件
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseGameEvent(string msg,PlayerData player)
+        {
+            // GE selfIndex@event:(参数) ...
+            string[] msgs = msg.Split(' ');
+            int eventCount = msgs.Length - 1;
+            for(int i = 1;i<eventCount;i++)
+            {
+                string[] t = msgs[i].Split('@');
+                ushort index = currentIndex++;
+                Event_waitSend t_e = new Event_waitSend(t[1], t[0], index, player.Camp, player.client);
+                sendEventQueue.Enqueue(t_e);
+            }
+        }
+
+        /// <summary>
+        /// 解析事件回答
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseEventAnswer(string msg,PlayerData player)
+        {
+            // EA index@answer
+            string[] data = msg.Split(' ')[1].Split('@');
+            int index = int.Parse(data[0]);
+            int answer = int.Parse(data[1]);
+            try
+            {
+                Event_waitAnswer t = answerEventList[index];
+                t.AddAnswer(answer);
+                if(t.getAnswerNum() == maxPlayer)
+                {
+                    int t_answer = t.Answer();
+                    answerEventList.Remove(index);
+                    string t_data = string.Format("EA {0}:{1}",t.data.selfIndex,t_answer);
+                    t.data.client.Send(t_data);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error EA");
+            }
+        }
+
+        /// <summary>
+        /// 向所有玩家发送该信息
+        /// </summary>
+        /// <param name="msg"></param>
+        void BroadcastMsg(string msg)
+        {
+            for (int i = 0; i < Players.Length; i++)
+            {
+                if (Players[i].client.isLink)
+                {
+                    Players[i].client.Send(msg);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 将事件放入待回答队列
+        /// </summary>
+        void AddEvent(Event_waitSend t)
+        {
+            Event_waitAnswer t_a = new Event_waitAnswer();
+            t_a.data = t;
+            t_a.endTime = ServerFunction.getTimeStamp_milSeconds() + maxWaitTime_event;
+            answerEventList.Add(t.index, t_a);
         }
 
     }

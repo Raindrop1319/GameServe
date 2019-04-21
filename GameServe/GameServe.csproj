@@ -95,6 +95,7 @@
     <Compile Include="Room.cs" />
     <Compile Include="RoomManagement.cs" />
     <Compile Include="ServerFunction.cs" />
+    <Compile Include="StructData.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
