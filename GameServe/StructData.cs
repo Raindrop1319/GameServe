@@ -35,7 +35,7 @@ namespace GameServe
         public Event_waitSend data = null;
         public long endTime = 0;
 
-        private List<int> answerList;
+        private List<int> answerList = new List<int>();
 
         public void AddAnswer(int a)
         {

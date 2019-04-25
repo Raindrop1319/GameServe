@@ -8,11 +8,11 @@ namespace Mathf
 {
     class Vector3
     {
-        public float x, y, z;
+        public int x, y, z;
 
         static public Vector3 zero = new Vector3(0, 0, 0);
 
-        public Vector3(float x,float y,float z)
+        public Vector3(int x,int y,int z)
         {
             this.x = x;
             this.y = y;
@@ -56,7 +56,7 @@ namespace Mathf
         static public Vector3 Parse(string t,char s)
         {
             string[] d = t.Split(s);
-            Vector3 result = new Vector3(float.Parse(d[0]), float.Parse(d[1]), float.Parse(d[2]));
+            Vector3 result = new Vector3(int.Parse(d[0]), int.Parse(d[1]), int.Parse(d[2]));
             return result;
         }
     }

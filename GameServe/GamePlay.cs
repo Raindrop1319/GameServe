@@ -15,7 +15,7 @@ namespace GameServe
     class GamePlay
     {
         const int maxWaitTime_event = 1000; //(毫秒)
-
+        
         private PlayerData[] Players;
         private const int maxPlayer = 2;
 
@@ -92,34 +92,42 @@ namespace GameServe
             while(!isFinish)
             {
                 //处理待发事件队列
-                string t_msg = "GE";
                 if(sendEventQueue.Count > 0)
                 {
-                    while(sendEventQueue.Count <= 0)
+                    string t_msg = "GE";
+                    while (sendEventQueue.Count > 0)
                     {
                         Event_waitSend t = sendEventQueue.Dequeue();
                         t_msg += t.ToString();
                         AddEvent(t);
                     }
+                    BroadcastMsg(t_msg);
                 }
-                BroadcastMsg(t_msg);
 
                 //处理待回答事件列表
                 long currentTimeStamp = ServerFunction.getTimeStamp_milSeconds();
-                for (int i = answerEventList.Count - 1; i >= 0; i--)
+                if (answerEventList.Count > 0)
                 {
-                    Event_waitAnswer t = answerEventList[i];
-                    //超时
-                    if(currentTimeStamp > t.endTime)
+                    Dictionary<int, Event_waitAnswer>.KeyCollection keysCollect = null;
+                    keysCollect = answerEventList.Keys;
+                    int[] keys = new int[keysCollect.Count];
+                    keysCollect.CopyTo(keys, 0);
+                    for(int i = 0;i<keys.Length;i++)
                     {
-                        //如果超过一半玩家应答则予以回应
-                        if(t.getAnswerNum() > maxPlayer * 0.5f)
+                        Event_waitAnswer t = answerEventList[keys[i]];
+                        //超时
+                        if (currentTimeStamp > t.endTime)
                         {
-                            int t_answer = t.Answer();
-                            string t_data = string.Format("EA {0}:{1}", t.data.selfIndex, t_answer);
-                            t.data.client.Send(t_data);
+                            //如果超过一半玩家应答则予以回应
+                            if (t.getAnswerNum() > maxPlayer * 0.5f)
+                            {
+                                int t_answer = t.Answer();
+                                string t_data = string.Format("EA {0}:{1}", t.data.selfIndex, t_answer);
+                                t.data.client.Send(t_data);
+                            }
+                            Console.WriteLine("Timeout");
+                            answerEventList.Remove(keys[i]);
                         }
-                        answerEventList.Remove(t.data.index);
                     }
                 }
             
@@ -197,7 +205,7 @@ namespace GameServe
                 devideData = ServerFunction.DevideMsg(data);
                 for (int i = 0; i < devideData.Length; i++)
                 {
-                    if (devideData[i].CompareTo("HB") != 0)
+                    if (devideData[i].CompareTo("HB") != 0 && devideData[i].Substring(0,2).CompareTo("PD") != 0)
                     {
                         Console.WriteLine("房间内：  " + devideData[i]);
                     }
@@ -307,7 +315,7 @@ namespace GameServe
             // GE selfIndex@event:(参数) ...
             string[] msgs = msg.Split(' ');
             int eventCount = msgs.Length - 1;
-            for(int i = 1;i<eventCount;i++)
+            for(int i = 1;i<=eventCount;i++)
             {
                 string[] t = msgs[i].Split('@');
                 ushort index = currentIndex++;
@@ -326,7 +334,7 @@ namespace GameServe
             // EA index@answer
             string[] data = msg.Split(' ')[1].Split('@');
             int index = int.Parse(data[0]);
-            int answer = int.Parse(data[1]);
+            int answer = int.Parse(data[1].Split(':')[1]);
             try
             {
                 Event_waitAnswer t = answerEventList[index];
