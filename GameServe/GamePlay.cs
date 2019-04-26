@@ -22,7 +22,10 @@ namespace GameServe
         int rand;
         bool[] isReady = { false, false };
         bool isFinish = false;
-        
+
+        private long lastTime = 0;
+        private float deltaTime = 0;
+
         //待发事件队列
         Queue<Event_waitSend> sendEventQueue = new Queue<Event_waitSend>();
         //待回答事件表
@@ -91,6 +94,14 @@ namespace GameServe
 
             while(!isFinish)
             {
+
+
+                //更新玩家数据
+                for(int i = 0;i<Players.Length;i++)
+                {
+                    Players[i].Update(deltaTime);
+                }
+
                 //处理待发事件队列
                 if(sendEventQueue.Count > 0)
                 {
@@ -162,6 +173,10 @@ namespace GameServe
                 {
                     break;
                 }
+
+                //更新时间参数
+                deltaTime = (currentTimeStamp - lastTime) / 1000.0f;
+                lastTime = currentTimeStamp;
 
                 Thread.Sleep(50);
             }
@@ -257,6 +272,9 @@ namespace GameServe
                 case "EA":
                     ParseEventAnswer(msg, player);
                     break;
+                case "UP":
+                    ParseUpdateData(msg, player);
+                    break;
             }
         }
 
@@ -279,7 +297,7 @@ namespace GameServe
             player.client.updateTick(ServerFunction.getTimeStamp());
         }
 
-        const string format_PDunit = "{0}:{1}:{2}:{3}";
+        const string format_PDunit = "{0}:{1}:{2}:{3}:{4}";  //对象：位置：朝向：分数：DValue
         /// <summary>
         /// 获取玩家数据
         /// </summary>
@@ -289,7 +307,7 @@ namespace GameServe
         {
             PlayerData t = Players[i];
 
-            return string.Format(format_PDunit, t.Camp, t.Pos.ToString(), t.Dir.ToString(), t.Score);
+            return string.Format(format_PDunit, t.Camp, t.Pos.ToString(), t.Dir.ToString(), t.Score,(int)(t.D_Value * config.precision));
         }
 
         /// <summary>
@@ -377,6 +395,27 @@ namespace GameServe
             t_a.data = t;
             t_a.endTime = ServerFunction.getTimeStamp_milSeconds() + maxWaitTime_event;
             answerEventList.Add(t.index, t_a);
+        }
+
+        /// <summary>
+        /// 解析数据更新
+        /// camp@数据名@value
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseUpdateData(string msg,PlayerData player)
+        {
+            int camp;
+            string paramName;
+            string value;
+
+            //解析参数
+            string[] t = msg.Split(' ')[1].Split('@');
+            camp = int.Parse(t[0]);
+            paramName = t[1];
+            value = t[2];
+
+            Players[camp].updateData(paramName, value);
         }
 
     }
