@@ -10,7 +10,7 @@ namespace GameServe
     {
         public string eventData;
         public string selfIndex;
-        public int index;
+        public int index = 0;
         public int camp;
         public Client client;
 
@@ -60,7 +60,7 @@ namespace GameServe
                     a_true++;
             }
 
-            if (a_true > a_false)
+            if (a_true >= a_false)
                 return 1;
             else
                 return 0;

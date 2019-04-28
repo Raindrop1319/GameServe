@@ -15,13 +15,15 @@ namespace GameServe
     class GamePlay
     {
         const int maxWaitTime_event = 1000; //(毫秒)
+
+        private string name;
         
         private PlayerData[] Players;
         private const int maxPlayer = 2;
 
         int rand;
         bool[] isReady = { false, false };
-        bool isFinish = false;
+        public bool isFinish = false;
 
         private long lastTime = 0;
         private float deltaTime = 0;
@@ -35,6 +37,8 @@ namespace GameServe
 
         public GamePlay(Room rm)
         {
+            name = rm.name;
+
             Players = new PlayerData[maxPlayer];
             for(int i = 0;i<maxPlayer;i++)
             {
@@ -100,6 +104,22 @@ namespace GameServe
                 for(int i = 0;i<Players.Length;i++)
                 {
                     Players[i].Update(deltaTime);
+                }
+
+                //发送玩家事件
+                int c = 0;
+                string data_1 = "BM";
+                for (int i = 0; i < Players.Length; i++)
+                {
+                    if (Players[i].msgQueue.Count > 0)
+                    {
+                        data_1 += Players[i].getMsg();
+                        c++;
+                    }
+                }
+                if(c > 0)
+                {
+                    BroadcastMsg(data_1);
                 }
 
                 //处理待发事件队列
@@ -171,6 +191,8 @@ namespace GameServe
                 //检测是否所有玩家都已掉线
                 if(j == maxPlayer)
                 {
+                    Console.WriteLine(name + "_房间结束游戏");
+                    isFinish = true;
                     break;
                 }
 
@@ -297,7 +319,7 @@ namespace GameServe
             player.client.updateTick(ServerFunction.getTimeStamp());
         }
 
-        const string format_PDunit = "{0}:{1}:{2}:{3}:{4}";  //对象：位置：朝向：分数：DValue
+        const string format_PDunit = "{0}:{1}:{2}:{3}:{4}:{5}";  //对象：位置：朝向：分数：DValue：运送分数
         /// <summary>
         /// 获取玩家数据
         /// </summary>
@@ -307,7 +329,7 @@ namespace GameServe
         {
             PlayerData t = Players[i];
 
-            return string.Format(format_PDunit, t.Camp, t.Pos.ToString(), t.Dir.ToString(), t.Score,(int)(t.D_Value * config.precision));
+            return string.Format(format_PDunit, t.Camp, t.Pos.ToString(), t.Dir.ToString(), t.Score,(int)(t.D_Value * config.precision),t.carryScore);
         }
 
         /// <summary>
@@ -321,6 +343,7 @@ namespace GameServe
             player.Pos = Vector3.Parse(t[1], ',');
             player.Dir = Vector3.Parse(t[2], ',');
             player.Score = int.Parse(t[3]);
+            player.carryScore = int.Parse(t[4]);
         }
 
         /// <summary>
@@ -415,7 +438,7 @@ namespace GameServe
             paramName = t[1];
             value = t[2];
 
-            Players[camp].updateData(paramName, value);
+            Players[camp].updateData(paramName, value, player);
         }
 
     }

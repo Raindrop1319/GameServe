@@ -19,6 +19,7 @@ namespace GameServe
         public bool isGame = false;
         public string IPandPort;
 
+        const string format_Packet = "*{0}*";
         /// <summary>
         /// 向客户端发送消息
         /// </summary>
@@ -28,7 +29,8 @@ namespace GameServe
         {
             try
             {
-                socket.Send(System.Text.Encoding.UTF8.GetBytes(s_data));
+                string data = string.Format(format_Packet, s_data);
+                socket.Send(System.Text.Encoding.UTF8.GetBytes(data));
                 return true;
             }
             catch
