@@ -46,10 +46,10 @@ namespace GameServe
         /// <param name="value"></param>
         public void updateData(string paramName,string value,PlayerData player)
         {
-            float data = int.Parse(value);
             switch(paramName)
             {
                 case "DValue":
+                    int data = int.Parse(value);
                     lastModifyTime_DValue = ServerFunction.getTimeStamp_milSeconds();
                     //最后一击
                     if(D_Value >= maxDValue && data > 0)
@@ -59,6 +59,15 @@ namespace GameServe
                         msgQueue.Enqueue(t);
                     }
                     D_Value += data;
+                    break;
+                case "Score":
+                    int data2 = int.Parse(value);
+                    //产生消息
+                    string t2 = getSacrifice(this, carryScore, data2);
+                    msgQueue.Enqueue(t2);
+                    //完成一次献祭
+                    Score += carryScore;
+                    carryScore = 0;
                     break;
                 default:
                     break;
@@ -92,6 +101,12 @@ namespace GameServe
             Vector3 dir = Pos - player.Pos;
             carryScore -= count;
             return string.Format(Format_finalAttack, Camp, count,dir.ToString());
+        }
+
+        string Format_Sacri = "Sacri@{0}:{1}:{2}";  //阵营：数量：献祭塔编号
+        string getSacrifice(PlayerData player,int count,int TowerIndex)
+        {
+            return string.Format(Format_Sacri, player.Camp, count, TowerIndex);
         }
 
         public string getMsg()

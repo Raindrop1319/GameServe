@@ -294,7 +294,7 @@ namespace GameServe
                 case "EA":
                     ParseEventAnswer(msg, player);
                     break;
-                case "UP":
+                case "UD":
                     ParseUpdateData(msg, player);
                     break;
             }
@@ -342,8 +342,7 @@ namespace GameServe
             string[] t = msg.Split(' ');
             player.Pos = Vector3.Parse(t[1], ',');
             player.Dir = Vector3.Parse(t[2], ',');
-            player.Score = int.Parse(t[3]);
-            player.carryScore = int.Parse(t[4]);
+            player.carryScore += int.Parse(t[3]);
         }
 
         /// <summary>
