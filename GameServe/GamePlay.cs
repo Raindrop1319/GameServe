@@ -28,6 +28,12 @@ namespace GameServe
         private long lastTime = 0;
         private float deltaTime = 0;
 
+        //线程
+        Thread Thread_game = null;
+
+        //结束游戏后房间内剩余玩家
+        int leftPlayerCount = maxPlayer;
+
         //待发事件队列
         Queue<Event_waitSend> sendEventQueue = new Queue<Event_waitSend>();
         //待回答事件表
@@ -58,9 +64,9 @@ namespace GameServe
             Players[0].client.isGame = true;
             Players[1].client.isGame = true;
 
-            Thread t = new Thread(Game);
-            t.IsBackground = true;
-            t.Start();
+            Thread_game = new Thread(Game);
+            Thread_game.IsBackground = true;
+            Thread_game.Start();
 
             for(int i = 0;i<maxPlayer;i++)
             {
@@ -200,7 +206,51 @@ namespace GameServe
                 deltaTime = (currentTimeStamp - lastTime) / 1000.0f;
                 lastTime = currentTimeStamp;
 
+                //检测是否结束游戏
+                int t3 = 0;
+                for(int i = 0;i<Players.Length;i++)
+                {
+                    if(Players[i].isEnd)
+                    {
+                        t3++;
+                    }
+                }
+                if(t3 == Players.Length)
+                {
+                    //结束游戏
+                    Console.WriteLine(name + "_房间结束游戏");
+                    string data_EG = getEndGameData();
+                    BroadcastMsg(data_EG);
+                    break;
+                }
+
                 Thread.Sleep(50);
+            }
+
+            while(true)
+            {
+                //检测是否所有玩家都已退出
+                int j = 0;
+                for (int i = 0; i < Players.Length; i++)
+                {
+                    if (!Players[i].client.isLink && !Players[i].isLeftGameRoom)
+                    {
+                        Players[i].isLeftGameRoom = true;
+                    }
+
+                    if(Players[i].isLeftGameRoom)
+                    {
+                        j++;
+                    }
+                }
+
+                if (j == maxPlayer)
+                {
+                    isFinish = true;
+                    break;
+                }
+
+                Thread.Sleep(1000);
             }
         }
 
@@ -257,7 +307,7 @@ namespace GameServe
             //清空数组数据
             Array.Clear(player.client.data, 0, player.client.data.Length);
 
-            if (player.client.isLink)
+            if (player.client.isLink && !player.isLeftGameRoom)
             {
                 try
                 {
@@ -297,6 +347,12 @@ namespace GameServe
                 case "UD":
                     ParseUpdateData(msg, player);
                     break;
+                case "EG":
+                    ParseEndGame(msg, player);
+                    break;
+                case "BH":
+                    ParseBackHall(msg, player);
+                    break;
             }
         }
 
@@ -319,7 +375,7 @@ namespace GameServe
             player.client.updateTick(ServerFunction.getTimeStamp());
         }
 
-        const string format_PDunit = "{0}:{1}:{2}:{3}:{4}:{5}";  //对象：位置：朝向：分数：DValue：运送分数
+        const string format_PDunit = "{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}";  //对象：位置：朝向：分数：DValue：运送分数:垂直飞行：水平飞行
         /// <summary>
         /// 获取玩家数据
         /// </summary>
@@ -329,7 +385,7 @@ namespace GameServe
         {
             PlayerData t = Players[i];
 
-            return string.Format(format_PDunit, t.Camp, t.Pos.ToString(), t.Dir.ToString(), t.Score,(int)(t.D_Value * config.precision),t.carryScore);
+            return string.Format(format_PDunit, t.Camp, t.Pos.ToString(), t.Dir.ToString(), t.Score,(int)(t.D_Value * config.precision),t.carryScore, t.isCraft_Vertical?1:0, t.isCraft_Horizontal?1:0);
         }
 
         /// <summary>
@@ -343,6 +399,8 @@ namespace GameServe
             player.Pos = Vector3.Parse(t[1], ',');
             player.Dir = Vector3.Parse(t[2], ',');
             player.carryScore += int.Parse(t[3]);
+            player.isCraft_Vertical = int.Parse(t[4]) == 1 ? true:false;
+            player.isCraft_Horizontal = int.Parse(t[5]) == 1 ? true : false;
         }
 
         /// <summary>
@@ -440,5 +498,43 @@ namespace GameServe
             Players[camp].updateData(paramName, value, player);
         }
 
+        /// <summary>
+        /// 解析结束游戏
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseEndGame(string msg,PlayerData player)
+        {
+            player.isEnd = true;
+        }
+
+        const string Format_EndGame = " {0}:{1}:{2}:{3}";  //阵营：ID：得分：击杀数
+        /// <summary>
+        /// 获取游戏结果
+        /// </summary>
+        /// <returns></returns>
+        string getEndGameData()
+        {
+            string data = "EG";
+            for(int i = 0;i<Players.Length; i++)
+            {
+                data += string.Format(Format_EndGame, Players[i].Camp, Players[i].client.ID, Players[i].Score, Players[i].KillCount);
+            }
+            return data;
+        }
+
+        /// <summary>
+        /// 解析返回大厅
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseBackHall(string msg,PlayerData player)
+        {
+            player.isLeftGameRoom = true;
+            player.client.isGame = false;
+            player.client.isStayRoom = false;
+            //接收消息转换
+            Program.addLinstener(player.client);
+        }
     }
 }

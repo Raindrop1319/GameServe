@@ -157,6 +157,7 @@ namespace GameServe
                     result = AccountManagement.getInstance().Login(data);
                     if(result.Split(' ')[1].CompareTo("S") == 0)
                     {
+                        CT.ID = result.Split(' ')[2];
                         CT.isLogin = true;
                     }
                     CT.Send(result);
@@ -219,6 +220,9 @@ namespace GameServe
             ClientList.Remove(CT);
         }
 
-
+        static public void addLinstener(Client ct)
+        {
+            ct.socket.BeginReceive(ct.data, 0, ct.data.Length, SocketFlags.None, new AsyncCallback(Callback_Receive), ct);
+        }
     }
 }

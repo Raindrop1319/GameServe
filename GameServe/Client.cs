@@ -18,6 +18,7 @@ namespace GameServe
         public bool isStayRoom = false;
         public bool isGame = false;
         public string IPandPort;
+        public string ID;
 
         const string format_Packet = "*{0}*";
         /// <summary>

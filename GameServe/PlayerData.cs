@@ -16,6 +16,8 @@ namespace GameServe
         //状态
         public bool isConnect = true;
         public bool isGame = true;
+        public bool isEnd = false;
+        public bool isLeftGameRoom = false;
 
         //网络
         public Client client;
@@ -29,6 +31,9 @@ namespace GameServe
         public float D_Value = 0;
         public int carryScore = 0;
         private float EnergyDropRate = 0.4f;  //能量掉落比率
+        public bool isCraft_Vertical = false;
+        public bool isCraft_Horizontal = false;
+        public int KillCount = 0;
 
         //DValue恢复速度
         private float RecoverRate_DValue = 2;
