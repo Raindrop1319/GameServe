@@ -59,7 +59,7 @@ namespace GameServe
                     //最后一击
                     if(D_Value >= maxDValue && data > 0)
                     {
-                        D_Value = 0;
+                        D_Value = 0.5f * maxDValue;
                         string t = getFinalAttack(player);
                         msgQueue.Enqueue(t);
                     }

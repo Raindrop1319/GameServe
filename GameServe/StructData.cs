@@ -66,4 +66,14 @@ namespace GameServe
                 return 0;
         }
     }
+
+    /// <summary>
+    /// 据点
+    /// </summary>
+    class StrongholdInfo
+    {
+        public int camp = -1;
+        public bool isHold = false;
+        public int holdTimeStamp = 0;
+    }
 }

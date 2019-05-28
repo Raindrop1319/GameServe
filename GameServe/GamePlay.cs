@@ -17,6 +17,9 @@ namespace GameServe
         const int maxWaitTime_event = 1000; //(毫秒)
 
         private string name;
+
+        //时间
+        public float Time = 0;
         
         private PlayerData[] Players;
         private const int maxPlayer = 2;
@@ -24,6 +27,9 @@ namespace GameServe
         int rand;
         bool[] isReady = { false, false };
         public bool isFinish = false;
+
+        //据点
+        StrongholdInfo[] Stronghold = new StrongholdInfo[config.MAXCOUNT_STRONGHOLD];
 
         private long lastTime = 0;
         private float deltaTime = 0;
@@ -72,6 +78,12 @@ namespace GameServe
             {
                 SendInitData(Players[i]);
             }
+            for(int i = 0;i<Stronghold.Length;i++)
+            {
+                Stronghold[i] = new StrongholdInfo();
+            }
+
+            lastTime = ServerFunction.getTimeStamp_milSeconds();
         }
 
         /// <summary>
@@ -205,6 +217,7 @@ namespace GameServe
                 //更新时间参数
                 deltaTime = (currentTimeStamp - lastTime) / 1000.0f;
                 lastTime = currentTimeStamp;
+                Time += deltaTime;
 
                 //检测是否结束游戏
                 int t3 = 0;
@@ -287,8 +300,8 @@ namespace GameServe
 
             string data = System.Text.Encoding.UTF8.GetString(player.client.data).TrimEnd('\0');
             string[] devideData;
-            try
-            {
+            //try
+            //{
                 devideData = ServerFunction.DevideMsg(data);
                 for (int i = 0; i < devideData.Length; i++)
                 {
@@ -298,11 +311,11 @@ namespace GameServe
                     }
                     Parse(devideData[i], player);
                 }
-            }
-            catch
-            {
-                Console.WriteLine("Error Package");
-            }
+            //}
+            //catch
+            //{
+            //    Console.WriteLine("Error Package");
+            //}
 
             //清空数组数据
             Array.Clear(player.client.data, 0, player.client.data.Length);
@@ -352,6 +365,9 @@ namespace GameServe
                     break;
                 case "BH":
                     ParseBackHall(msg, player);
+                    break;
+                case "SH":
+                    ParseStrongHold(msg, player);
                     break;
             }
         }
@@ -516,6 +532,18 @@ namespace GameServe
         string getEndGameData()
         {
             string data = "EG";
+            //判断获胜方
+            int winCamp = 0;
+            int maxScore = 0;
+            for(int i = 0;i<Players.Length;i++)
+            {
+                if(maxScore < Players[i].Score)
+                {
+                    winCamp = Players[i].Camp;
+                }
+            }
+            data += string.Format(" {0}", winCamp);
+
             for(int i = 0;i<Players.Length; i++)
             {
                 data += string.Format(Format_EndGame, Players[i].Camp, Players[i].client.ID, Players[i].Score, Players[i].KillCount);
@@ -536,5 +564,34 @@ namespace GameServe
             //接收消息转换
             Program.addLinstener(player.client);
         }
+
+        string format_Stronghold_hold = "BM Stronghold@H:{0}:{1}:{2}";  //index:camp:占据时间
+        string format_Stronghold_close = "BM Stronghold@C:{0}";  //index
+        /// <summary>
+        /// 解析据点信息
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseStrongHold(string msg,PlayerData player)
+        {
+            string[] data = msg.Split(' ')[1].Split('@');
+            int index;
+            switch(data[0])
+            {
+                case "H":
+                    index = int.Parse(data[1]);
+                    Stronghold[index].camp = player.Camp;
+                    Stronghold[index].isHold = true;
+                    Stronghold[index].holdTimeStamp = (int)Time;
+                    BroadcastMsg(string.Format(format_Stronghold_hold, index, player.Camp, Stronghold[index].holdTimeStamp));
+                    break;
+                case "C":
+                    index = int.Parse(data[1]);
+                    Stronghold[index].camp = player.Camp;
+                    Stronghold[index].isHold = false;
+                    BroadcastMsg(string.Format(format_Stronghold_close, index));
+                    break;
+            }
+        } 
     }
 }

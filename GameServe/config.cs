@@ -12,5 +12,7 @@ namespace GameServe
         public static int precision = 10000;
         //DValue恢复时间(毫秒)
         public static int MaxRecoverTime_DValue = 5000;
+        //据点数量
+        public static int MAXCOUNT_STRONGHOLD = 5;
     }
 }
