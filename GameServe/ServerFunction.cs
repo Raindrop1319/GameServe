@@ -103,5 +103,16 @@ namespace GameServe
             }
             return count;
         }
+
+        static public float SendNumber2Float(string num)
+        {
+            int t = int.Parse(num);
+            return t / config.precision;
+        }
+
+        static public float Float2SendNumber(float num)
+        {
+            return (float)Math.Floor(num * config.precision);
+        }
     }
 }

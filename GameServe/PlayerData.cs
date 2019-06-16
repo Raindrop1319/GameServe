@@ -34,6 +34,7 @@ namespace GameServe
         public bool isCraft_Vertical = false;
         public bool isCraft_Horizontal = false;
         public int KillCount = 0;
+        private int[] material = { 0,0,0};
 
         //DValue恢复速度
         private float RecoverRate_DValue = 2;
@@ -41,6 +42,8 @@ namespace GameServe
 
         //消息队列
         public Queue<string> msgQueue = new Queue<string>();
+
+        public GamePlay gameplayRoom = null;
 
         const string Format_finalAttack = "finalAttack@{0}:{1}:{2}";  //参数：对象-掉落个数-击退方向(未单位化)
 
@@ -108,10 +111,20 @@ namespace GameServe
             return string.Format(Format_finalAttack, Camp, count,dir.ToString());
         }
 
-        string Format_Sacri = "Sacri@{0}:{1}:{2}";  //阵营：数量：献祭塔编号
+        Random rd = new Random();
+        string Format_Sacri = "Sacri@{0}:{1}:{2}:{3}:{4}:{5}";  //阵营：数量：献祭塔编号:奖赏材料:数量:索引
         string getSacrifice(PlayerData player,int count,int TowerIndex)
         {
-            return string.Format(Format_Sacri, player.Camp, count, TowerIndex);
+            int materialIndex = -1;
+            int materialNum = 0;
+            int index = -1;
+            if(count >= config.MAXCOUNT_SACRIFICE)
+            {
+                materialIndex = rd.Next(0, 4);
+                materialNum = rd.Next(1, 2 + count * 2);
+                index = gameplayRoom.AddMaterialBox(materialIndex,count);
+            }
+            return string.Format(Format_Sacri, player.Camp, count, TowerIndex, materialIndex, materialNum, index);
         }
 
         public string getMsg()
@@ -122,6 +135,33 @@ namespace GameServe
                 data += (" " + msgQueue.Dequeue());
             }
             return data;
+        }
+
+        string format_backpack = "BP {0}:{1}:{2}";
+        /// <summary>
+        /// 更新材料
+        /// </summary>
+        /// <param name="m"></param>
+        public void UpdateMaterial(int mIndex,int delta)
+        {
+            material[mIndex] += delta;
+            //通知客户端
+            client.Send(string.Format(format_backpack, material[0], material[1], material[2]));
+        }
+
+        /// <summary>
+        /// 是否能够创建
+        /// </summary>
+        /// <param name="materials"></param>
+        /// <returns></returns>
+        public bool isCanCreate(int[] materials)
+        {
+            for(int i = 0;i<materials.Length;i++)
+            {
+                if (materials[i] > material[i])
+                    return false;
+            }
+            return true;
         }
     }
 }

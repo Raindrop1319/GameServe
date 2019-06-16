@@ -43,19 +43,20 @@ namespace GameServe
             while(true)
             {
                 //检查有无结束游戏的房间
-                //if (GameplayList.Count > 0)
-                //{
-                //    for (int i = GameplayList.Count - 1; i >= 0; i++)
-                //    {
-                //        GamePlay t = GameplayList[i];
-                //        if (t.isFinish)
-                //        {
-                //            GameplayList.Remove(t);
-                //        }
-                //    }
-                //}
+                if (GameplayList.Count > 0)
+                {
+                    for (int i = GameplayList.Count - 1; i >= 0; i--)
+                    {
+                        GamePlay t = GameplayList[i];
+                        if (t.isFinish)
+                        {
+                            GameplayList.Remove(t);
+                            Console.WriteLine(t.name + "已删除");
+                        }
+                    }
+                }
 
-                Thread.Sleep(200);
+                Thread.Sleep(500);
             }
         }
     }

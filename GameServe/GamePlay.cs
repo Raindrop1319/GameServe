@@ -16,7 +16,7 @@ namespace GameServe
     {
         const int maxWaitTime_event = 1000; //(毫秒)
 
-        private string name;
+        public string name;
 
         //时间
         public float Time = 0;
@@ -40,12 +40,19 @@ namespace GameServe
         //结束游戏后房间内剩余玩家
         int leftPlayerCount = maxPlayer;
 
+        //单位信息
+        Dictionary<string, UnitInfo>[] UnitDic = new Dictionary<string, UnitInfo>[maxPlayer];
+
         //待发事件队列
         Queue<Event_waitSend> sendEventQueue = new Queue<Event_waitSend>();
         //待回答事件表
         Dictionary<int, Event_waitAnswer> answerEventList = new Dictionary<int, Event_waitAnswer>();
-        //当前事件索引表
+        //索引
         ushort currentIndex = 0;
+        ushort currentIndex_material = 0;
+        int UnitIndex = 0;
+        //材料箱容器
+        Dictionary<ushort, materialBox> Dic_MaterialBox = new Dictionary<ushort, materialBox>();
 
         public GamePlay(Room rm)
         {
@@ -76,6 +83,7 @@ namespace GameServe
 
             for(int i = 0;i<maxPlayer;i++)
             {
+                Players[i].gameplayRoom = this;
                 SendInitData(Players[i]);
             }
             for(int i = 0;i<Stronghold.Length;i++)
@@ -84,6 +92,12 @@ namespace GameServe
             }
 
             lastTime = ServerFunction.getTimeStamp_milSeconds();
+
+            //初始化单位信息字典
+            for(int i = 0;i<UnitDic.Length;i++)
+            {
+                UnitDic[i] = new Dictionary<string, UnitInfo>();
+            }
         }
 
         /// <summary>
@@ -300,8 +314,8 @@ namespace GameServe
 
             string data = System.Text.Encoding.UTF8.GetString(player.client.data).TrimEnd('\0');
             string[] devideData;
-            //try
-            //{
+            try
+            {
                 devideData = ServerFunction.DevideMsg(data);
                 for (int i = 0; i < devideData.Length; i++)
                 {
@@ -311,11 +325,11 @@ namespace GameServe
                     }
                     Parse(devideData[i], player);
                 }
-            //}
-            //catch
-            //{
-            //    Console.WriteLine("Error Package");
-            //}
+            }
+            catch
+            {
+                Console.WriteLine("Error Package");
+            }
 
             //清空数组数据
             Array.Clear(player.client.data, 0, player.client.data.Length);
@@ -368,6 +382,18 @@ namespace GameServe
                     break;
                 case "SH":
                     ParseStrongHold(msg, player);
+                    break;
+                case "GM":
+                    ParseGetMaterial(msg, player);
+                    break;
+                case "DM":
+                    ParseDamageInfo(msg, player);
+                    break;
+                case "UB":
+                    ParseUnitBehavious(msg, player);
+                    break;
+                case "CU":
+                    ParseCreateUnit(msg, player);
                     break;
             }
         }
@@ -593,5 +619,162 @@ namespace GameServe
                     break;
             }
         } 
+
+        /// <summary>
+        /// 解析获取材料
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseGetMaterial(string msg,PlayerData player)
+        {
+            ushort index;
+
+            string data = msg.Split(' ')[1];
+            index = ushort.Parse(data);
+
+            if(Dic_MaterialBox.ContainsKey(index))
+            {
+                materialBox t = Dic_MaterialBox[index];
+                Dic_MaterialBox.Remove(index);
+                //更新背包
+                player.UpdateMaterial(t.materialIndex,t.count);
+                //广播
+                BroadcastMsg(string.Format("BM GetM@{0}:{1}", player.Camp, index));  //参数：玩家，材料箱索引
+            }
+        }
+
+        /// <summary>
+        /// 添加一个材料箱
+        /// </summary>
+        /// <returns></returns>
+        public ushort AddMaterialBox(int materialIndex,int count)
+        {
+            ushort index = currentIndex_material++;
+            materialBox t;
+            t.materialIndex = materialIndex;
+            t.count = count;
+            Dic_MaterialBox.Add(index, t);
+            return index;
+        }
+
+        const string format_DM = "DM {0}:{1}:{2}:{3}"; //阵营：单位ID：当前DValue：受伤的时间
+        /// <summary>
+        /// 解析伤害信息
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseDamageInfo(string msg,PlayerData player)
+        {
+            bool isPlayer;
+            string target;
+            int damage;
+            float time;
+            int camp;
+
+            string data = msg.Split(' ')[1];
+            string[] t = data.Split(':');
+            isPlayer = t[0] == "0" ? false : true;
+            target = t[1];
+            damage = int.Parse(t[2]);
+            time = ServerFunction.SendNumber2Float(t[3]);
+            camp = int.Parse(t[5]);
+
+            //超时
+            if (time + config.MAXTIME_MSG > Time)
+                return;
+
+            if(isPlayer)
+            {
+                Players[int.Parse(target)].D_Value += damage;
+            }
+            else
+            {
+                float DValue = UnitDic[camp][target].getDamage(damage, Time);
+                //构造广播信息
+                string sendMSG = string.Format(format_DM, camp, target, ServerFunction.Float2SendNumber(DValue), Time);
+                //广播
+                BroadcastMsg(sendMSG);
+            }
+        }
+
+        /// <summary>
+        /// 解析单位行为
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseUnitBehavious(string msg,PlayerData player)
+        {
+            float time;
+            int camp;
+            string ID;
+
+            string data = msg.Split(' ')[1];
+            string[] t = data.Split('@');
+
+            time = ServerFunction.SendNumber2Float(t[0]);
+            camp = int.Parse(t[1]);
+            ID = t[2];
+
+            //检查行为是否超时
+            if (time + config.MAXTIME_MSG > Time) 
+                return;
+            else
+            {
+                //是否合法
+                if (!UnitDic[camp][ID].isError)
+                {
+                    BroadcastMsg(msg);
+                }
+            }
+        }
+
+        const string format_CU = "CU {0}:{1}:{2}:{3}:{4}";
+        /// <summary>
+        /// 解析单位创造
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="player"></param>
+        void ParseCreateUnit(string msg,PlayerData player)
+        {
+            Vector3 pos;
+            string rotation;
+            float recoverSpeed;
+            float Time_recover;
+            int MaxDValue;
+            int[] material = new int[3];
+            int type;
+            int index;
+
+            string[] data = msg.Split(' ')[1].Split(':');
+
+            pos = Vector3.Parse(data[0], ',');
+            rotation = data[1];
+            recoverSpeed = ServerFunction.SendNumber2Float(data[2]);
+            Time_recover = ServerFunction.SendNumber2Float(data[3]);
+            MaxDValue = int.Parse(data[4]);
+            material[0] = int.Parse(data[5]);
+            material[1] = int.Parse(data[6]);
+            material[2] = int.Parse(data[7]);
+            type = int.Parse(data[8]);
+
+            //是否能创建
+            if (!player.isCanCreate(material))
+                return;
+
+            index = UnitIndex++;
+            UnitInfo t = new UnitInfo(index.ToString(), recoverSpeed, Time_recover, MaxDValue, type, pos, rotation);
+            for(int i = 0; i < material.Length; i++)
+                player.UpdateMaterial(i, -material[i]);
+
+            //广播
+            string MSG = string.Format(format_CU,
+                index,
+                data[0],
+                data[1],
+                player.Camp,
+                data[8]
+                );
+            BroadcastMsg(MSG);
+        }
     }
 }

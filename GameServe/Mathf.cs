@@ -60,4 +60,33 @@ namespace Mathf
             return result;
         }
     }
+
+
+    class Vector4
+    {
+        public int x, y, z,w;
+
+        static public Vector4 zero = new Vector4(0, 0, 0,0);
+
+        public Vector4(int x, int y, int z,int w)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        }
+
+        public Vector4()
+        {
+            x = 0;
+            y = 0;
+            z = 0;
+            w = 0;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("{0},{1},{2},{3}", x, y, z, w);
+        }
+    }
 }
