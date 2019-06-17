@@ -85,6 +85,7 @@
     <Compile Include="AccountManagement.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="config.cs" />
+    <Compile Include="Delegate.cs" />
     <Compile Include="Enum.cs" />
     <Compile Include="GamePlay.cs" />
     <Compile Include="GameplayManagement.cs" />

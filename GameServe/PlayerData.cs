@@ -63,7 +63,7 @@ namespace GameServe
                     if(D_Value >= maxDValue && data > 0)
                     {
                         D_Value = 0.5f * maxDValue;
-                        string t = getFinalAttack(player);
+                        string t = getFinalAttack(player.Pos);
                         msgQueue.Enqueue(t);
                     }
                     D_Value += data;
@@ -103,10 +103,10 @@ namespace GameServe
             }
         }
 
-        string getFinalAttack(PlayerData player)
+        string getFinalAttack(Vector3 pos)
         {
             int count = (int)(carryScore * EnergyDropRate);
-            Vector3 dir = Pos - player.Pos;
+            Vector3 dir = Pos - pos;
             carryScore -= count;
             return string.Format(Format_finalAttack, Camp, count,dir.ToString());
         }
@@ -120,7 +120,7 @@ namespace GameServe
             int index = -1;
             if(count >= config.MAXCOUNT_SACRIFICE)
             {
-                materialIndex = rd.Next(0, 4);
+                materialIndex = rd.Next(0, 3);
                 materialNum = rd.Next(1, 2 + count * 2);
                 index = gameplayRoom.AddMaterialBox(materialIndex,count);
             }
@@ -149,6 +149,14 @@ namespace GameServe
             client.Send(string.Format(format_backpack, material[0], material[1], material[2]));
         }
 
+        public void UpdateMaterial(int[] delta,int p)
+        {
+            for (int i = 0; i < delta.Length; i++)
+                material[i] += (delta[i] * p);
+            //通知客户端
+            client.Send(string.Format(format_backpack, material[0], material[1], material[2]));
+        }
+
         /// <summary>
         /// 是否能够创建
         /// </summary>
@@ -162,6 +170,19 @@ namespace GameServe
                     return false;
             }
             return true;
+        }
+
+        public void getDamage(int damage,Vector3 shootPos)
+        {
+            lastModifyTime_DValue = ServerFunction.getTimeStamp_milSeconds();
+            //最后一击
+            if (D_Value >= maxDValue && damage > 0)
+            {
+                D_Value = 0.5f * maxDValue;
+                string t = getFinalAttack(shootPos);
+                msgQueue.Enqueue(t);
+            }
+            D_Value += damage;
         }
     }
 }

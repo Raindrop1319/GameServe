@@ -86,6 +86,9 @@ namespace GameServe
 
     class UnitInfo
     {
+        //委托
+        public Dele_UpdateBehavious dele_updateBehavious;
+
         public Vector3 pos;
         public string rotation;
 
@@ -109,10 +112,12 @@ namespace GameServe
             this.type = type;
             this.pos = pos;
             this.rotation = rotation;
+
+            dele_updateBehavious += Update;
         }
 
         //更新DValue
-        public void Update(float currentTime,float deltaTime)
+        void Update(float currentTime,float deltaTime)
         {
             if (!isError)
             {
@@ -136,6 +141,12 @@ namespace GameServe
             }
 
             return DValue;
+        }
+
+        //销毁
+        public void Destroy()
+        {
+            dele_updateBehavious -= Update;
         }
     }
 }

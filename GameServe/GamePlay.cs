@@ -53,6 +53,8 @@ namespace GameServe
         int UnitIndex = 0;
         //材料箱容器
         Dictionary<ushort, materialBox> Dic_MaterialBox = new Dictionary<ushort, materialBox>();
+        //委托
+        event Dele_UpdateBehavious UpdateBehavious = null;
 
         public GamePlay(Room rm)
         {
@@ -136,6 +138,11 @@ namespace GameServe
                 for(int i = 0;i<Players.Length;i++)
                 {
                     Players[i].Update(deltaTime);
+                }
+                //更新单位状态
+                if (UpdateBehavious != null)
+                {
+                    UpdateBehavious(Time, deltaTime);
                 }
 
                 //发送玩家事件
@@ -314,8 +321,8 @@ namespace GameServe
 
             string data = System.Text.Encoding.UTF8.GetString(player.client.data).TrimEnd('\0');
             string[] devideData;
-            try
-            {
+            //try
+            //{
                 devideData = ServerFunction.DevideMsg(data);
                 for (int i = 0; i < devideData.Length; i++)
                 {
@@ -325,11 +332,11 @@ namespace GameServe
                     }
                     Parse(devideData[i], player);
                 }
-            }
-            catch
-            {
-                Console.WriteLine("Error Package");
-            }
+            //}
+            //catch
+            //{
+            //    Console.WriteLine("Error Package");
+            //}
 
             //清空数组数据
             Array.Clear(player.client.data, 0, player.client.data.Length);
@@ -670,28 +677,30 @@ namespace GameServe
             int damage;
             float time;
             int camp;
+            Vector3 shootPos;
 
             string data = msg.Split(' ')[1];
             string[] t = data.Split(':');
-            isPlayer = t[0] == "0" ? false : true;
+            isPlayer = (t[0] == "0" ? false : true);
             target = t[1];
             damage = int.Parse(t[2]);
             time = ServerFunction.SendNumber2Float(t[3]);
-            camp = int.Parse(t[5]);
+            camp = int.Parse(t[4]);
+            shootPos = Vector3.Parse(t[5], ',');
 
             //超时
-            if (time + config.MAXTIME_MSG > Time)
+            if (time + config.MAXTIME_MSG < Time)
                 return;
 
             if(isPlayer)
             {
-                Players[int.Parse(target)].D_Value += damage;
+                Players[int.Parse(target)].getDamage(damage, shootPos);
             }
             else
             {
                 float DValue = UnitDic[camp][target].getDamage(damage, Time);
                 //构造广播信息
-                string sendMSG = string.Format(format_DM, camp, target, ServerFunction.Float2SendNumber(DValue), Time);
+                string sendMSG = string.Format(format_DM, camp, target, ServerFunction.Float2SendNumber(DValue), ServerFunction.Float2SendNumber(Time));
                 //广播
                 BroadcastMsg(sendMSG);
             }
@@ -716,7 +725,7 @@ namespace GameServe
             ID = t[2];
 
             //检查行为是否超时
-            if (time + config.MAXTIME_MSG > Time) 
+            if (time + config.MAXTIME_MSG < Time) 
                 return;
             else
             {
@@ -763,8 +772,11 @@ namespace GameServe
 
             index = UnitIndex++;
             UnitInfo t = new UnitInfo(index.ToString(), recoverSpeed, Time_recover, MaxDValue, type, pos, rotation);
-            for(int i = 0; i < material.Length; i++)
-                player.UpdateMaterial(i, -material[i]);
+            //添加字典
+            UnitDic[player.Camp].Add(index.ToString(),t);
+            player.UpdateMaterial(material,-1);
+            //设置委托
+            t.dele_updateBehavious = UpdateBehavious;
 
             //广播
             string MSG = string.Format(format_CU,
